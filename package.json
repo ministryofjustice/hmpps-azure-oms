@@ -1,0 +1,20 @@
+{
+  "name": "hmpps-azure-oms",
+  "version": "1.0.0",
+  "description": "Scripts and config for Azure OMS",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ministryofjustice/hmpps-azure-oms.git"
+  },
+  "author": "Ministry of Justice",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ministryofjustice/hmpps-azure-oms/issues"
+  },
+  "homepage": "https://github.com/ministryofjustice/hmpps-azure-oms#readme",
+  "dependencies": {
+    "console.table": "^0.9.1",
+    "ms-rest": "^2.2.2",
+    "yargs": "^9.0.1"
+  }
+}
