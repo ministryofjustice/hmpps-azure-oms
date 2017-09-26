@@ -53,4 +53,30 @@ module.exports = function(saveSearch) {
     }
   });
 
+  saveSearch({
+    id: 'windows-disk',
+    name: 'Windows Disks almost full',
+    query: `Perf
+    | where CounterName == "% Free Space"
+    | extend Disk = strcat(Computer, " ", InstanceName)
+    | summarize AggregatedValue = max(100 - CounterValue)
+      by bin(TimeGenerated, 5m), Disk
+    `,
+    enabled: true,
+    interval: 5,
+    timespan: 10,
+    alerts: {
+      warning: {
+        threshold: ["gt", 85],
+        metric: ["total", "gt", 1],
+        throttle: 10,
+      },
+      critical: {
+        threshold: ["gt", 95],
+        metric: ["total", "gt", 3],
+        throttle: 10,
+      }
+    }
+  });
+
 }
