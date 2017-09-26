@@ -21,6 +21,8 @@ const {ServiceClient} = require('ms-rest');
 
 const {loadLocalCredentials} = require('./local-azure-creds');
 
+const {sortByList} = require('./utils');
+
 const RG_PATH = '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}';
 const OMS_PATH = RG_PATH + '/providers/Microsoft.OperationalInsights/workspaces/{workspaceName}/';
 
@@ -54,13 +56,16 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
     });
   };
 
-  client.getSearchAlerts = async function getSearchAlerts() {
-    const searches = (await client.getSavedSearchesInFull())
-      .filter((s) => isSearchAlert(s.name));
+  client.getSearchAlerts = async function getSearchAlerts(cached) {
+    const savedSearches = cached || await client.getSavedSearchesInFull();
 
-    const searchAlerts = searches.map(convertToSearchAlert);
+    return client.convertToSearchAlerts(
+      savedSearches.filter((s) => isSearchAlert(s.name))
+    );
+  }
 
-    return searchAlerts;
+  client.convertToSearchAlerts = function(searches) {
+    return searches.map(convertToSearchAlert);
   }
 
   client.getSavedSearchesInFull = async function getSavedSearchesInFull() {
@@ -165,16 +170,10 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   function getActionLevel(action) {
     return String(action.properties.Severity).toLowerCase();
   }
-  function sortActions(actions) {
-    const actionOrder = ['informational', 'warning', 'critical'];
-    actions = actions.slice();
-    actions.sort((a, b) => {
-      const aLevel = getActionLevel(a), bLevel = getActionLevel(b);
-      if (aLevel == bLevel) return 0;
-      return actionOrder.indexOf(aLevel) - actionOrder.indexOf(bLevel);
-    });
-    return actions;
-  }
+  const sortActions = sortByList(
+    ['informational', 'warning', 'critical'],
+    getActionLevel
+  );
 
   function listSearches() {
     return client({

@@ -8,6 +8,7 @@ const jsdiff = require('diff');
 require('console.table');
 
 const {createOMSClient} = require('./oms-client');
+const {sortByList} = require('./utils');
 
 function parseArgs() {
   const argv = require('yargs')
@@ -16,7 +17,13 @@ function parseArgs() {
       choices: getEnvironmentsList(),
       demandOption: true,
     })
-    .command('diff', 'Show changes to search alerts')
+    .command('diff', 'Show changes to search alerts', yargs => {
+      yargs.option('cached', {
+        string: true,
+        normalize: true,
+        describe: 'Path to cached raw output to diff against'
+      })
+    })
     .command('apply', 'Make the changes to search alerts')
     .command('raw', 'Show all raw search data', yargs => {
       yargs.option('all', {
@@ -59,9 +66,14 @@ async function apply(client) {
   }
 }
 
-async function diff(client) {
-  const actual = await client.getSearchAlerts();
+async function diff(client, args) {
   const expected = loadDesiredAlerts();
+
+  const getId = (a) => a.id;
+  const sorter = sortByList(expected.map(getId), getId);
+
+  const cached = args.cached && require(path.join(process.cwd(), args.cached));
+  const actual = sorter(await client.getSearchAlerts(cached));
 
   const actualString = JSON.stringify(actual, null, 2);
   const expectedString = JSON.stringify(expected, null, 2);
