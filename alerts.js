@@ -30,7 +30,6 @@ module.exports = function(saveSearch) {
   saveSearch({
     id: 'linux-disk',
     name: 'Linux Disks almost full',
-    description: '',
     query: `Perf
     | where CounterName == "% Used Space"
     | extend Disk = strcat(Computer, " ", InstanceName)

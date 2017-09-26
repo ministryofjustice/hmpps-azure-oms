@@ -3,6 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const jsdiff = require('diff');
+
 require('console.table');
 
 const {createOMSClient} = require('./oms-client');
@@ -26,8 +28,6 @@ function parseArgs() {
     .demandCommand(1, 'You must specify the command')
     .strict()
     .argv;
-
-
 
   return argv;
 }
@@ -60,8 +60,23 @@ async function apply(client) {
 }
 
 async function diff(client) {
-  const searchAlerts = await client.getSearchAlerts();
-  console.log(JSON.stringify(searchAlerts, null, 2));
+  const actual = await client.getSearchAlerts();
+  const expected = loadDesiredAlerts();
+
+  const actualString = JSON.stringify(actual, null, 2);
+  const expectedString = JSON.stringify(expected, null, 2);
+
+  const diff = jsdiff.createTwoFilesPatch(
+    "actual alerts",
+    "expected alerts",
+    actualString,
+    expectedString,
+    'from Azure REST API',
+    'from ./alerts.js',
+    {context: 1000}
+  );
+
+  console.log(diff);
 }
 
 async function raw(client, args) {

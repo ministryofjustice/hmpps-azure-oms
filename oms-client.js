@@ -56,11 +56,11 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
 
   client.getSearchAlerts = async function getSearchAlerts() {
     const searches = (await client.getSavedSearchesInFull())
-      .filter(isSearchAlert);
+      .filter((s) => isSearchAlert(s.name));
 
-    // TODO: convert objects into savedsearch schema
+    const searchAlerts = searches.map(convertToSearchAlert);
 
-    return searches;
+    return searchAlerts;
   }
 
   client.getSavedSearchesInFull = async function getSavedSearchesInFull() {
@@ -110,6 +110,9 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
             Value: alert.metric[2],
           }
         },
+        Throttling: {
+          DurationInMinutes: alert.throttle
+        },
         etag: '*',
       }
     );
@@ -118,14 +121,59 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   function searchName(searchId) {
     return 'searchalert-' + searchId;
   }
-  function isSearchAlert(search) {
-    return String(search.name).startsWith('searchalert-');
+  function unSearchName(searchId) {
+    return searchId.replace(/^searchalert-/, '');
+  }
+  function isSearchAlert(searchId) {
+    return String(searchId).startsWith('searchalert-');
   }
   function scheduleName(searchId) {
     return searchId + '-schedule';
   }
   function actionName(searchId, level) {
     return searchId + '-' + level;
+  }
+
+  function convertToSearchAlert(search) {
+    const schedule = search.schedules[0];
+    const searchAlert = {
+      id: unSearchName(search.name),
+      name: search.properties.DisplayName,
+      query: search.properties.Query,
+      enabled: schedule.properties.Enabled,
+      interval: schedule.properties.Interval,
+      timespan: schedule.properties.QueryTimeSpan,
+      alerts: {},
+    };
+    sortActions(schedule.actions).forEach((action) => {
+      const level = getActionLevel(action);
+      const threshold = action.properties.Threshold;
+      searchAlert.alerts[level] = {
+        threshold: [threshold.Operator.toLowerCase(), threshold.Value],
+        metric: [
+          threshold.MetricsTrigger.TriggerCondition.toLowerCase(),
+          threshold.MetricsTrigger.Operator.toLowerCase(),
+          threshold.MetricsTrigger.Value
+        ],
+        throttle: action.properties.Throttling.DurationInMinutes
+      }
+    });
+
+    return searchAlert;
+  }
+
+  function getActionLevel(action) {
+    return String(action.properties.Severity).toLowerCase();
+  }
+  function sortActions(actions) {
+    const actionOrder = ['informational', 'warning', 'critical'];
+    actions = actions.slice();
+    actions.sort((a, b) => {
+      const aLevel = getActionLevel(a), bLevel = getActionLevel(b);
+      if (aLevel == bLevel) return 0;
+      return actionOrder.indexOf(aLevel) - actionOrder.indexOf(bLevel);
+    });
+    return actions;
   }
 
   function listSearches() {
