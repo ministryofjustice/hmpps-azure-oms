@@ -12,7 +12,8 @@
  * an alert is a single action (which is where the thresholds live)
  *
  * All searchAlerts created by this script have a name prefix of searchalert-
- * to make them easier to find again
+ * to make them easier to find again. They also get a category of SearchAlert
+ * so they're easy to find in the UI
  */
 const path = require('path');
 
@@ -53,23 +54,26 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
     });
   };
 
-  client.getSearchAlerts = async function getSearchAlerts(all = false) {
-    let searches = await listSearches();
-    if (!all) {
-      searches = searches.filter((search) => isSearchAlert(search.name));
-    }
+  client.getSearchAlerts = async function getSearchAlerts() {
+    const searches = (await client.getSavedSearchesInFull())
+      .filter(isSearchAlert);
 
-    searches = await Promise.all(searches.map(addSchedulesAndActions));
+    // TODO: convert objects into savedsearch schema
 
     return searches;
+  }
+
+  client.getSavedSearchesInFull = async function getSavedSearchesInFull() {
+    const searches = await listSearches();
+    return await Promise.all(searches.map(addSchedulesAndActions));
   }
 
   client.putSearchAlert = async function putSearchAlert(search) {
     await putSavedSearch(
       searchName(search.id),
       {
-        DisplayName: search.name + ' [SearchAlert]',
-        Category: search.category,
+        DisplayName: search.name,
+        Category: 'SearchAlert',
         Query: search.query,
         Version: 2,
         etag: '*',
@@ -114,8 +118,8 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   function searchName(searchId) {
     return 'searchalert-' + searchId;
   }
-  function isSearchAlert(searchName) {
-    return String(searchName).startsWith('searchalert-');
+  function isSearchAlert(search) {
+    return String(search.name).startsWith('searchalert-');
   }
   function scheduleName(searchId) {
     return searchId + '-schedule';

@@ -9,16 +9,25 @@ const {createOMSClient} = require('./oms-client');
 
 function parseArgs() {
   const argv = require('yargs')
-    .options('environment', {
+    .option('environment', {
       alias: 'e',
       choices: getEnvironmentsList(),
       demandOption: true,
     })
     .command('diff', 'Show changes to search alerts')
     .command('apply', 'Make the changes to search alerts')
-    .command('raw', 'Show all raw search data')
+    .command('raw', 'Show all raw search data', yargs => {
+      yargs.option('all', {
+        boolean: true,
+        default: false,
+        describe: 'Include saved searches with no alert configuration'
+      })
+    })
     .demandCommand(1, 'You must specify the command')
+    .strict()
     .argv;
+
+
 
   return argv;
 }
@@ -51,18 +60,18 @@ async function apply(client) {
 }
 
 async function diff(client) {
-  const alerts = await client.getSearchAlerts();
-  console.log(JSON.stringify(alerts, null, 2));
+  const searchAlerts = await client.getSearchAlerts();
+  console.log(JSON.stringify(searchAlerts, null, 2));
 }
 
-async function raw(client) {
-  const alerts = await client.getSearchAlerts(true);
-  console.log(JSON.stringify(alerts, null, 2));
-  // console.log(alerts.length);
-  // console.log(alerts.map((a) => a.Alerts[0].properties.Name));
+async function raw(client, args) {
+  let savedSearches = await client.getSavedSearchesInFull();
 
-  // console.log(await client.getSavedSearch('cpu utilization'));
-  // console.log(await client.getSchedules('cpu utilization'));
+  if (!args.all) {
+    savedSearches = savedSearches.filter((s) => s.schedules.length);
+  }
+
+  console.log(JSON.stringify(savedSearches, null, 2));
 }
 
 function getEnvironment(name) {

@@ -2,7 +2,6 @@ module.exports = function(saveSearch) {
 
   saveSearch({
     id: 'cpu',
-    category: 'VMs',
     name: 'Machines using high CPU',
     query: `Perf
     | where ObjectName == "Processor"
@@ -30,7 +29,6 @@ module.exports = function(saveSearch) {
 
   saveSearch({
     id: 'linux-disk',
-    category: 'VMs',
     name: 'Linux Disks almost full',
     description: '',
     query: `Perf
