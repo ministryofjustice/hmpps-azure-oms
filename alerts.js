@@ -28,6 +28,31 @@ module.exports = function(saveSearch) {
   });
 
   saveSearch({
+    id: 'ram',
+    name: 'Machines using high RAM',
+    query: `Perf
+    | where CounterName == "% Used Memory"
+    | summarize AggregatedValue=avg(CounterValue)
+      by bin(TimeGenerated, 1m), Computer
+    `,
+    enabled: true,
+    interval: 5,
+    timespan: 15,
+    alerts: {
+      warning: {
+        threshold: ["gt", 80],
+        metric: ["total", "gt", 5],
+        throttle: 0,
+      },
+      critical: {
+        threshold: ["gt", 90],
+        metric: ["total", "gt", 5],
+        throttle: 0,
+      }
+    }
+  });
+
+  saveSearch({
     id: 'linux-disk',
     name: 'Linux Disks almost full',
     query: `Perf
