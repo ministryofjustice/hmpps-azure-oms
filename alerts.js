@@ -87,6 +87,36 @@ module.exports = function(saveSearch) {
     }
   });
 
+
+  saveSearch({
+    id: 'linux-inodes',
+    name: 'Linux Disk Inodes almost full',
+    query: `Perf
+    | where CounterName == "% Used Inodes"
+    | extend Disk = strcat(Computer, " ", InstanceName)
+    | summarize AggregatedValue = max(CounterValue)
+      by bin(TimeGenerated, 5m), Disk
+    `,
+    alerts: {
+      warning: {
+        enabled: true,
+        interval: 5,
+        timespan: 10,
+        threshold: ["gt", 85],
+        metric: ["total", "gt", 1],
+        throttle: 10,
+      },
+      critical: {
+        enabled: true,
+        interval: 5,
+        timespan: 10,
+        threshold: ["gt", 95],
+        metric: ["total", "gt", 3],
+        throttle: 10,
+      }
+    }
+  });
+
   saveSearch({
     id: 'windows-disk',
     name: 'Windows Disks almost full',
