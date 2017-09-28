@@ -4,12 +4,15 @@
  *     which have many schedules
  *     which have many actions
  *
+ * But in practice you can't actually have many actions - it lets you save
+ * the setup via API, but the alerts don't actually work
+ *
  * We instead expose a model which has
  *   searchAlerts
  *     which have many alerts, up to one per alert level
  *
- * searchAlerts map 1-1 with savedSearch + schedule
- * an alert is a single action (which is where the thresholds live)
+ * searchAlerts map 1-1 with savedSearch
+ * an alert is a schedule + an action
  *
  * All searchAlerts created by this script have a name prefix of searchalert-
  * to make them easier to find again. They also get a category of SearchAlert
@@ -84,24 +87,25 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
         etag: '*',
       }
     );
-    await putSchedule(
-      searchName(search.id),
-      scheduleName(search.id),
-      {
-        Interval: search.interval,
-        QueryTimeSpan: search.timespan,
-        Enabled: search.enabled,
-        etag: '*',
-      }
-    );
   }
 
   client.putAlert = async function putAlert(search, level) {
+    const alertName = actionName(search.id, level);
     const alert = search.alerts[level];
-    return await putAction(
+    await putSchedule(
       searchName(search.id),
-      scheduleName(search.id),
-      actionName(search.id, level),
+      alertName,
+      {
+        Interval: alert.interval,
+        QueryTimeSpan: alert.timespan,
+        Enabled: alert.enabled,
+        etag: '*',
+      }
+    );
+    await putAction(
+      searchName(search.id),
+      alertName,
+      alertName,
       {
         Type: "Alert",
         Name: `${search.name} (${level})`,
@@ -132,28 +136,29 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   function isSearchAlert(searchId) {
     return String(searchId).startsWith('searchalert-');
   }
-  function scheduleName(searchId) {
-    return searchId + '-schedule';
-  }
   function actionName(searchId, level) {
     return searchId + '-' + level;
   }
 
   function convertToSearchAlert(search) {
-    const schedule = search.schedules[0];
     const searchAlert = {
       id: unSearchName(search.name),
       name: search.properties.DisplayName,
       query: search.properties.Query,
-      enabled: schedule.properties.Enabled,
-      interval: schedule.properties.Interval,
-      timespan: schedule.properties.QueryTimeSpan,
       alerts: {},
     };
-    sortActions(schedule.actions).forEach((action) => {
+    const sortSchedules = sortByList(
+      ['informational', 'warning', 'critical'],
+      (schedule) => getActionLevel(schedule.actions[0])
+    );
+    sortSchedules(search.schedules).forEach((schedule) => {
+      const action = schedule.actions[0];
       const level = getActionLevel(action);
       const threshold = action.properties.Threshold;
       searchAlert.alerts[level] = {
+        enabled: schedule.properties.Enabled,
+        interval: schedule.properties.Interval,
+        timespan: schedule.properties.QueryTimeSpan,
         threshold: [threshold.Operator.toLowerCase(), threshold.Value],
         metric: [
           threshold.MetricsTrigger.TriggerCondition.toLowerCase(),
@@ -170,10 +175,6 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   function getActionLevel(action) {
     return String(action.properties.Severity).toLowerCase();
   }
-  const sortActions = sortByList(
-    ['informational', 'warning', 'critical'],
-    getActionLevel
-  );
 
   function listSearches() {
     return client({

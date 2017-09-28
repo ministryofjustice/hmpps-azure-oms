@@ -10,16 +10,19 @@ module.exports = function(saveSearch) {
     | summarize AggregatedValue=avg(CounterValue)
       by bin(TimeGenerated, 1m), Computer
     `,
-    enabled: true,
-    interval: 5,
-    timespan: 15,
     alerts: {
       warning: {
+        enabled: true,
+        interval: 5,
+        timespan: 15,
         threshold: ["gt", 65],
         metric: ["total", "gt", 3],
         throttle: 0,
       },
       critical: {
+        enabled: true,
+        interval: 5,
+        timespan: 15,
         threshold: ["gt", 85],
         metric: ["total", "gt", 3],
         throttle: 0,
@@ -35,16 +38,19 @@ module.exports = function(saveSearch) {
     | summarize AggregatedValue=avg(CounterValue)
       by bin(TimeGenerated, 1m), Computer
     `,
-    enabled: true,
-    interval: 5,
-    timespan: 15,
     alerts: {
       warning: {
+        enabled: true,
+        interval: 5,
+        timespan: 15,
         threshold: ["gt", 80],
         metric: ["total", "gt", 5],
         throttle: 0,
       },
       critical: {
+        enabled: true,
+        interval: 5,
+        timespan: 15,
         threshold: ["gt", 90],
         metric: ["total", "gt", 5],
         throttle: 0,
@@ -61,16 +67,19 @@ module.exports = function(saveSearch) {
     | summarize AggregatedValue = max(CounterValue)
       by bin(TimeGenerated, 5m), Disk
     `,
-    enabled: true,
-    interval: 5,
-    timespan: 10,
     alerts: {
       warning: {
+        enabled: true,
+        interval: 5,
+        timespan: 10,
         threshold: ["gt", 85],
         metric: ["total", "gt", 1],
         throttle: 10,
       },
       critical: {
+        enabled: true,
+        interval: 5,
+        timespan: 10,
         threshold: ["gt", 95],
         metric: ["total", "gt", 3],
         throttle: 10,
@@ -87,16 +96,19 @@ module.exports = function(saveSearch) {
     | summarize AggregatedValue = max(100 - CounterValue)
       by bin(TimeGenerated, 5m), Disk
     `,
-    enabled: true,
-    interval: 5,
-    timespan: 10,
     alerts: {
       warning: {
+        enabled: true,
+        interval: 5,
+        timespan: 10,
         threshold: ["gt", 85],
         metric: ["total", "gt", 1],
         throttle: 10,
       },
       critical: {
+        enabled: true,
+        interval: 5,
+        timespan: 10,
         threshold: ["gt", 95],
         metric: ["total", "gt", 3],
         throttle: 10,
