@@ -116,4 +116,38 @@ module.exports = function(saveSearch) {
     }
   });
 
+  saveSearch({
+    id: 'nsg-change',
+    name: 'NSG Changes',
+    query: `AzureActivity
+| where ActivityStatus == "Accepted"
+  and (
+    OperationName contains "Microsoft.Network/networkSecurityGroups/securityRules/"
+    or
+    OperationName contains "Microsoft.Network/networkSecurityGroups/delete"
+  )
+| extend
+    Op = extract("networkSecurityGroups/(.*)$", 1, OperationName),
+    Item = extract("networkSecurityGroups/(.*)$", 1, ResourceId),
+    Action = case(
+  ActivitySubstatus contains "201", "Created",
+  ActivitySubstatus contains "200", "Updated",
+  ActivitySubstatus contains "202", "Deleted",
+  "Unknown"
+  )
+| project TimeGenerated, Label=strcat(Action, " ", Item, " from ", ResourceGroup, " by ", Caller, " at ", TimeGenerated)
+| summarize AggregatedValue=count() by bin(TimeGenerated, 1s), Label
+    `,
+    alerts: {
+      informational: {
+        enabled: true,
+        interval: 15,
+        timespan: 60,
+        threshold: ["gt", 1],
+        metric: ["total", "gt", 1],
+        throttle: 60,
+      },
+    }
+  });
+
 }
