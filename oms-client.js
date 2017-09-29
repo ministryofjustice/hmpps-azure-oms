@@ -89,6 +89,16 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
     );
   }
 
+  client.deleteSearchAlert = async function putSearchAlert(id) {
+    const searchId = searchName(id);
+    const schedules = await getSchedules(searchId);
+    for (let schedule of schedules) {
+      await deleteSchedule(searchId, schedule.name);
+    }
+
+    await deleteSavedSearch(searchId);
+  }
+
   client.putAlert = async function putAlert(search, level) {
     const alertName = actionName(search.id, level);
     const alert = search.alerts[level];

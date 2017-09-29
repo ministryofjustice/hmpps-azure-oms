@@ -52,9 +52,16 @@ async function main() {
 const commands = {apply, diff, raw};
 
 async function apply(client) {
-  const searchAlerts = loadDesiredAlerts();
+  const desired = loadDesiredAlerts();
+  const current = await client.getSearchAlerts();
 
-  for (let searchAlert of searchAlerts) {
+  const toDelete = idsToDelete(current, desired);
+  for (let id of toDelete) {
+    console.log("Deleting search %s", id);
+    await client.deleteSearchAlert(id);
+  }
+
+  for (let searchAlert of desired) {
     console.log("Saving search %s: %s", searchAlert.id, searchAlert.name);
     await client.putSearchAlert(searchAlert);
     console.log("Saved search %s OK", searchAlert.id);
@@ -74,6 +81,8 @@ async function diff(client, args) {
 
   const cached = args.cached && require(path.join(process.cwd(), args.cached));
   const actual = sorter(await client.getSearchAlerts(cached));
+
+  // TODO: compare IDs first, then contents
 
   const actualString = JSON.stringify(actual, null, 2);
   const expectedString = JSON.stringify(expected, null, 2);
@@ -121,7 +130,12 @@ function loadDesiredAlerts() {
   return searchAlerts;
 }
 
+function idsToDelete(before, after) {
+  const afterIds = new Set(after.map(x => x.id));
 
+  return before.map(x => x.id)
+    .filter((id) => !afterIds.has(id));
+}
 
 
 main()
