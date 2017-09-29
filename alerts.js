@@ -31,10 +31,10 @@ module.exports = function(saveSearch) {
   });
 
   saveSearch({
-    id: 'ram',
-    name: 'Machines using high RAM',
+    id: 'windows-ram',
+    name: 'Windows Machines using high RAM',
     query: `Perf
-    | where CounterName == "% Used Memory"
+    | where CounterName == "% Committed Bytes In Use"
     | summarize AggregatedValue=avg(CounterValue)
       by bin(TimeGenerated, 1m), Computer
     `,
@@ -49,6 +49,34 @@ module.exports = function(saveSearch) {
       },
       critical: {
         enabled: true,
+        interval: 5,
+        timespan: 15,
+        threshold: ["gt", 90],
+        metric: ["total", "gt", 5],
+        throttle: 0,
+      }
+    }
+  });
+
+  saveSearch({
+    id: 'linux-ram',
+    name: 'Linux Machines using high RAM',
+    query: `Perf
+    | where CounterName == "% Used Memory"
+    | summarize AggregatedValue=avg(CounterValue)
+      by bin(TimeGenerated, 1m), Computer
+    `,
+    alerts: {
+      warning: {
+        enabled: false,
+        interval: 5,
+        timespan: 15,
+        threshold: ["gt", 80],
+        metric: ["total", "gt", 5],
+        throttle: 0,
+      },
+      critical: {
+        enabled: false,
         interval: 5,
         timespan: 15,
         threshold: ["gt", 90],
