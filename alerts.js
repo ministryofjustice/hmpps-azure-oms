@@ -147,6 +147,26 @@ module.exports = function(saveSearch) {
   });
 
   saveSearch({
+    id: 'offline-agents',
+    name: 'Offline OMS Agents',
+    query: `Heartbeat
+| summarize TimeGenerated=max(TimeGenerated) by Computer
+| where TimeGenerated < ago(1h)
+| summarize AggregatedValue=count() by bin(TimeGenerated, 1s), Computer
+    `,
+    alerts: {
+      critical: {
+        enabled: true,
+        interval: 15,
+        timespan: 1440,
+        threshold: ["gt", 0],
+        metric: ["total", "gt", 0],
+        throttle: 60,
+      },
+    }
+  });
+
+  saveSearch({
     id: 'nsg-change',
     name: 'NSG Changes',
     query: `AzureActivity
@@ -173,8 +193,8 @@ module.exports = function(saveSearch) {
         enabled: true,
         interval: 15,
         timespan: 60,
-        threshold: ["gt", 1],
-        metric: ["total", "gt", 1],
+        threshold: ["gt", 0],
+        metric: ["total", "gt", 0],
         throttle: 60,
       },
     }
