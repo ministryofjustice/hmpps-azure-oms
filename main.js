@@ -81,6 +81,8 @@ async function diff(client, args) {
 
   const extras = idsToDelete(actual, expected);
 
+  let differences = false;
+
   extras.forEach((extra) => {
     printDiff(actualById[extra], null);
   });
@@ -93,6 +95,10 @@ async function diff(client, args) {
     const actualString = JSON.stringify(actual, null, 2);
     const expectedString = JSON.stringify(expected, null, 2);
 
+    if (actualString === expectedString) {
+      return false;
+    }
+
     console.log(jsdiff.createTwoFilesPatch(
       actual ? actual.id : 'missing',
       expected ? expected.id : 'missing',
@@ -101,7 +107,11 @@ async function diff(client, args) {
       'from Azure REST API',
       'from ./alerts.js'
     ));
+
+    differences = true;
   }
+
+  return differences ? 1 : 0;
 }
 
 async function raw(client, args) {
@@ -155,7 +165,7 @@ function groupById(items) {
 
 
 main()
-  .then(() => console.log(""))
+  .then((code) => process.exit(code || 0))
   .catch((err) => {
     console.error("Unexpected error", err);
     process.exit(1);
