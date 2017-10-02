@@ -8,7 +8,6 @@ const jsdiff = require('diff');
 require('console.table');
 
 const {createOMSClient} = require('./oms-client');
-const {sortByList} = require('./utils');
 
 function parseArgs() {
   const argv = require('yargs')
@@ -76,28 +75,33 @@ async function apply(client) {
 async function diff(client, args) {
   const expected = loadDesiredAlerts();
 
-  const getId = (a) => a.id;
-  const sorter = sortByList(expected.map(getId), getId);
-
   const cached = args.cached && require(path.join(process.cwd(), args.cached));
-  const actual = sorter(await client.getSearchAlerts(cached));
+  const actual = await client.getSearchAlerts(cached);
+  const actualById = groupById(actual);
 
-  // TODO: compare IDs first, then contents
+  const extras = idsToDelete(actual, expected);
 
-  const actualString = JSON.stringify(actual, null, 2);
-  const expectedString = JSON.stringify(expected, null, 2);
+  extras.forEach((extra) => {
+    printDiff(actualById[extra], null);
+  });
 
-  const diff = jsdiff.createTwoFilesPatch(
-    "actual alerts",
-    "expected alerts",
-    actualString,
-    expectedString,
-    'from Azure REST API',
-    'from ./alerts.js',
-    {context: 1000}
-  );
+  expected.forEach((item) => {
+    printDiff(actualById[item.id], item);
+  });
 
-  console.log(diff);
+  function printDiff(actual, expected) {
+    const actualString = JSON.stringify(actual, null, 2);
+    const expectedString = JSON.stringify(expected, null, 2);
+
+    console.log(jsdiff.createTwoFilesPatch(
+      actual ? actual.id : 'missing',
+      expected ? expected.id : 'missing',
+      String(actualString),
+      String(expectedString),
+      'from Azure REST API',
+      'from ./alerts.js'
+    ));
+  }
 }
 
 async function raw(client, args) {
@@ -135,6 +139,18 @@ function idsToDelete(before, after) {
 
   return before.map(x => x.id)
     .filter((id) => !afterIds.has(id));
+}
+
+function groupById(items) {
+  const grouped = {};
+  items.forEach((item) => {
+    const id = item.id;
+    if (grouped[id]) {
+      throw new Error(`Unexpected repeated ID '${id}'`);
+    }
+    grouped[id] = item;
+  });
+  return grouped;
 }
 
 
