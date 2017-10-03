@@ -231,6 +231,14 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
     });
   }
 
+  function getAllSchedules() {
+    return client({
+      method: 'GET',
+      pathTemplate: '/schedules',
+    })
+      .then(basenameIds);
+  }
+
   function getSchedules(searchId) {
     return client({
       method: 'GET',
@@ -288,7 +296,7 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   client.raw = {
     listSearches,
     getSavedSearch, putSavedSearch, deleteSavedSearch,
-    getSchedules, putSchedule, deleteSchedule,
+    getAllSchedules, getSchedules, putSchedule, deleteSchedule,
     getActions, putAction, deleteAction
   };
 
