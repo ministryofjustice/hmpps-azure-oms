@@ -31,6 +31,7 @@ function parseArgs() {
         describe: 'Include saved searches with no alert configuration'
       })
     })
+    .command('computers', 'Compare list of VMs that exist to OMS\'s list')
     .demandCommand(1, 'You must specify the command')
     .strict()
     .argv;
@@ -48,7 +49,7 @@ async function main() {
   return command(client, args);
 }
 
-const commands = {apply, diff, raw};
+const commands = {apply, diff, raw, computers};
 
 async function apply(client) {
   const desired = loadDesiredAlerts();
@@ -122,6 +123,12 @@ async function raw(client, args) {
   }
 
   console.log(JSON.stringify(savedSearches, null, 2));
+}
+
+async function computers(client) {
+  const workspaceComputers = await client.getActiveComputers();
+
+  console.log(workspaceComputers);
 }
 
 function getEnvironment(name) {
