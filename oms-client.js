@@ -26,7 +26,9 @@ const {loadLocalCredentials} = require('./local-azure-creds');
 
 const {sortByList} = require('./utils');
 
-const RG_PATH = '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}';
+const SUB_PATH = '/subscriptions/{subscriptionId}'
+const VM_PATH = SUB_PATH + '/providers/Microsoft.Compute/virtualmachines';
+const RG_PATH = SUB_PATH + '/resourceGroups/{resourceGroup}';
 const OMS_PATH = RG_PATH + '/providers/Microsoft.OperationalInsights/workspaces/{workspaceName}/';
 
 exports.createOMSClient =
@@ -34,15 +36,10 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   const creds = loadLocalCredentials(subscriptionId);
   const serviceClient = new ServiceClient(creds);
 
-  const client = function(options) {
-    options.pathTemplate = OMS_PATH + options.pathTemplate;
+  const request = function(options) {
     options.pathParameters = Object.assign(
-      {subscriptionId, resourceGroup, workspaceName},
+      {subscriptionId},
       options.pathParameters
-    );
-    options.queryParameters = Object.assign(
-      {'api-version': '2017-04-26-preview'},
-      options.queryParameters
     );
     return new Promise((resolve, reject) => {
       serviceClient.sendRequest(options, (err, body, req, res) => {
@@ -57,7 +54,22 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
         return resolve(body);
       });
     });
+  }
+
+  const omsRequest = function(options) {
+    options.pathTemplate = OMS_PATH + options.pathTemplate;
+    options.pathParameters = Object.assign(
+      {resourceGroup, workspaceName},
+      options.pathParameters
+    );
+    options.queryParameters = Object.assign(
+      {'api-version': '2017-04-26-preview'},
+      options.queryParameters
+    );
+    return request(options);
   };
+
+  const client = {};
 
   client.getSearchAlerts = async function getSearchAlerts(cached) {
     const savedSearches = cached || await client.getSavedSearchesInFull();
@@ -138,23 +150,44 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   }
 
   client.getActiveComputers = async function getActiveComputers() {
-    // TODO: heartbeat search
-    const searchResults = await client({
+    const searchResults = await omsRequest({
       method: 'GET',
       pathTemplate: 'api/query/',
       queryParameters: {
         'api-version': '2017-01-01-preview',
-        query: 'Heartbeat | distinct Computer | sort by Computer desc',
+        query: 'Heartbeat | distinct Computer',
         timespan: 'PT1H',
       },
     });
 
     return searchResults.Tables[0].Rows
-      .map(([name]) => name.toLowerCase())
+      .map(([name]) => name.toUpperCase())
       .map((name) => {
         const i = name.indexOf('.');
         return i === -1 ? name : name.slice(0, i);
+      })
+      .sort();
+  }
+
+  client.getAllVMs = async function getAllVMs() {
+    let response = await request({
+      method: 'GET',
+      pathTemplate: VM_PATH,
+      queryParameters: {
+        'api-version': '2016-04-30-preview'
+      }
+    });
+    const vms = response.value;
+
+    while (response.nextLink) {
+      response = await request({
+        method: 'GET',
+        url: response.nextLink
       });
+      vms.push(...response.value);
+    }
+
+    return vms.map((vm) => vm.name.toUpperCase()).sort();
   }
 
   function searchName(searchId) {
@@ -207,7 +240,7 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   }
 
   function listSearches() {
-    return client({
+    return omsRequest({
       method: 'GET',
       pathTemplate: 'savedSearches',
     })
@@ -227,7 +260,7 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   }
 
   function getSavedSearch(searchId) {
-    return client({
+    return omsRequest({
       method: 'GET',
       pathTemplate: 'savedSearches/{searchId}',
       pathParameters: {searchId}
@@ -235,7 +268,7 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   }
 
   function putSavedSearch(searchId, properties) {
-    return client({
+    return omsRequest({
       method: 'PUT',
       pathTemplate: 'savedSearches/{searchId}',
       pathParameters: {searchId},
@@ -244,7 +277,7 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   }
 
   function deleteSavedSearch(searchId) {
-    return client({
+    return omsRequest({
       method: 'DELETE',
       pathTemplate: 'savedSearches/{searchId}',
       pathParameters: {searchId},
@@ -252,7 +285,7 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   }
 
   function getAllSchedules() {
-    return client({
+    return omsRequest({
       method: 'GET',
       pathTemplate: 'schedules',
     })
@@ -260,7 +293,7 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   }
 
   function getSchedules(searchId) {
-    return client({
+    return omsRequest({
       method: 'GET',
       pathTemplate: 'savedSearches/{searchId}/schedules',
       pathParameters: {searchId}
@@ -270,7 +303,7 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   }
 
   function putSchedule(searchId, scheduleId, properties) {
-    return client({
+    return omsRequest({
       method: 'PUT',
       pathTemplate: 'savedSearches/{searchId}/schedules/{scheduleId}',
       pathParameters: {searchId, scheduleId},
@@ -279,7 +312,7 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   }
 
   function deleteSchedule(searchId, scheduleId) {
-    return client({
+    return omsRequest({
       method: 'DELETE',
       pathTemplate: 'savedSearches/{searchId}/schedules/{scheduleId}',
       pathParameters: {searchId, scheduleId}
@@ -287,7 +320,7 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   }
 
   function getActions(searchId, scheduleId) {
-    return client({
+    return omsRequest({
       method: 'GET',
       pathTemplate: 'savedSearches/{searchId}/schedules/{scheduleId}/actions',
       pathParameters: {searchId, scheduleId}
@@ -297,7 +330,7 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   }
 
   function putAction(searchId, scheduleId, actionId, properties) {
-    return client({
+    return omsRequest({
       method: 'PUT',
       pathTemplate: 'savedSearches/{searchId}/schedules/{scheduleId}/actions/{actionId}',
       pathParameters: {searchId, scheduleId, actionId},
@@ -306,7 +339,7 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   }
 
   function deleteAction(searchId, scheduleId, actionId) {
-    return client({
+    return omsRequest({
       method: 'PUT',
       pathTemplate: 'savedSearches/{searchId}/schedules/{scheduleId}/actions/{actionId}',
       pathParameters: {searchId, scheduleId, actionId},

@@ -127,8 +127,18 @@ async function raw(client, args) {
 
 async function computers(client) {
   const workspaceComputers = await client.getActiveComputers();
+  const vms = await client.getAllVMs();
 
-  console.log(workspaceComputers);
+  const diff = jsdiff.createTwoFilesPatch(
+    'VMs which exist',
+    'Computers with recent heartbeat',
+    vms.join("\n"),
+    workspaceComputers.join("\n"),
+  );
+
+  console.log(diff);
+
+  return diff.length > 0;
 }
 
 function getEnvironment(name) {
