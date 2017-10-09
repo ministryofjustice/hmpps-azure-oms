@@ -31,7 +31,14 @@ function parseArgs() {
         describe: 'Include saved searches with no alert configuration'
       })
     })
-    .command('computers', 'Compare list of VMs that exist to OMS\'s list')
+    .command('computers', 'Compare list of VMs that exist to OMS\'s list', yargs => {
+      yargs.option('ignore', {
+        string: true,
+        default: '',
+        describe: 'comma separated list of VMs to ignore',
+        coerce: (arg) => arg.split(',')
+      })
+    })
     .demandCommand(1, 'You must specify the command')
     .strict()
     .argv;
@@ -125,11 +132,12 @@ async function raw(client, args) {
   console.log(JSON.stringify(savedSearches, null, 2));
 }
 
-async function computers(client) {
+async function computers(client, args) {
   const activeComputers = await client.getActiveComputers();
   const vms = await client.getAllVMs();
 
-  const missing = listSubtract(vms, activeComputers);
+  const toCompare = listSubtract(vms, args.ignore);
+  const missing = listSubtract(toCompare, activeComputers);
 
   if (missing.length === 0) {
     return 0;
