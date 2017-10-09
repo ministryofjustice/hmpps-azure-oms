@@ -135,7 +135,7 @@ async function computers(client) {
     return 0;
   }
 
-  console.log("Missing computers:")
+  console.log("VMs which exist but have no recent heartbeat:")
   console.log(missing.join("\n"));
   console.log("total: %d", missing.length);
 
