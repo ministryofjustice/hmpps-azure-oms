@@ -20,7 +20,7 @@ jobs:
               -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET \
               --tenant 747381f4-e81f-4a43-bf68-ced6a1e14edf
       - checkout
-      - npm install
+      - run: npm install
       - run:
           name: run computer connection report for devtest
           command: |
