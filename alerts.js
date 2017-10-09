@@ -195,6 +195,26 @@ module.exports = function(saveSearch) {
   });
 
   saveSearch({
+    id: 'clamav-matches',
+    name: 'ClamAV Matches',
+    query: `Syslog
+| where ProcessName == 'clamav' and SyslogMessage contains "FOUND"
+| extend Label=strcat(Computer, " ", SyslogMessage)
+| summarize AggregatedValue=count() by bin(TimeGenerated, 5m), Label
+    `,
+    alerts: {
+      warning: {
+        enabled: true,
+        interval: 10,
+        timespan: 15,
+        threshold: ["gt", 0],
+        metric: ["total", "gt", 0],
+        throttle: 60,
+      },
+    }
+  });
+
+  saveSearch({
     id: 'nsg-change',
     name: 'NSG Changes',
     query: `AzureActivity
