@@ -1,0 +1,33 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/node:8
+    steps:
+      - checkout
+      - run:
+          name: install azure cli and dependencies
+          command: |
+            echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ wheezy main" | \
+              sudo tee /etc/apt/sources.list.d/azure-cli.list
+            sudo apt-key adv --keyserver packages.microsoft.com --recv-keys 417A0893
+            sudo apt-get install apt-transport-https
+            sudo apt-get update
+            sudo apt-get install azure-cli
+      - run:
+          name: authenticate with az cli
+          command: |
+            az login --service-principal \
+              -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET \
+              --tenant 747381f4-e81f-4a43-bf68-ced6a1e14edf
+      - run:
+          name: run computer connection report for devtest
+          command: |
+            node main.js -e devtest computers
+          when: always
+      - run:
+          name: run computer connection report for production
+          command: |
+            node main.js -e production computers
+          when: always
+
