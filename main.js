@@ -126,19 +126,20 @@ async function raw(client, args) {
 }
 
 async function computers(client) {
-  const workspaceComputers = await client.getActiveComputers();
+  const activeComputers = await client.getActiveComputers();
   const vms = await client.getAllVMs();
 
-  const diff = jsdiff.createTwoFilesPatch(
-    'VMs which exist',
-    'Computers with recent heartbeat',
-    vms.join("\n"),
-    workspaceComputers.join("\n"),
-  );
+  const missing = listSubtract(vms, activeComputers);
 
-  console.log(diff);
+  if (missing.length === 0) {
+    return 0;
+  }
 
-  return diff.length > 0;
+  console.log("Missing computers:")
+  console.log(missing.join("\n"));
+  console.log("total: %d", missing.length);
+
+  return 1;
 }
 
 function getEnvironment(name) {
@@ -162,10 +163,13 @@ function loadDesiredAlerts() {
 }
 
 function idsToDelete(before, after) {
-  const afterIds = new Set(after.map(x => x.id));
+  return listSubtract(before.map(x => x.id), after.map(x => x.id));
+}
 
-  return before.map(x => x.id)
-    .filter((id) => !afterIds.has(id));
+function listSubtract(a, b) {
+  const bSet = new Set(b);
+
+  return a.filter((x) => !bSet.has(x));
 }
 
 function groupById(items) {
