@@ -29,11 +29,13 @@ jobs:
       - run:
           name: run computer connection report for devtest
           command: |
-            node main.js -e devtest computers
+            node main.js -e devtest computers \
+              --ignore MGMLX0050,MGMLX0051,MGMLX1050
           when: always
       - run:
           name: run computer connection report for production
           command: |
-            node main.js -e production computers
+            node main.js -e production computers \
+              --ignore DRMLX0050,DRMLX0051,DRMLX0052,PDMLX0050,PDMLX0051,PDMLX0052,PDMLX0055
           when: always
 
