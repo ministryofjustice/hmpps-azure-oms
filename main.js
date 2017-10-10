@@ -135,19 +135,39 @@ async function raw(client, args) {
 async function computers(client, args) {
   const activeComputers = await client.getActiveComputers();
   const vms = await client.getAllVMs();
+  const vmNames = vms.map(vm => vm.name).sort();
 
-  const toCompare = listSubtract(vms, args.ignore);
+  const toCompare = listSubtract(vmNames, args.ignore);
   const missing = listSubtract(toCompare, activeComputers);
 
   if (missing.length === 0) {
     return 0;
   }
 
-  console.log("VMs which exist but have no recent heartbeat:")
-  console.log(missing.join("\n"));
+  const missingSet = new Set(missing);
+  const missingVms = vms.filter(vm => missingSet.has(vm.name));
+  const powerStates = await client.getVMPowerState(missingVms);
+
+  const offline = missing.filter((vm) => powerStates[vm] === "off");
+  const online = listSubtract(missing, offline);
+
+  if (offline.length) {
+    console.log("VMs missing heartbeat but offline:")
+    console.log(offline.join("\n"));
+    console.log("-------------------");
+  }
+
+  if (online.length) {
+    console.log("VMs which exist but have no recent heartbeat:")
+    console.log(online.join("\n"));
+    console.log("-------------------");
+  }
+
+  console.log("offline: %d", offline.length);
+  console.log("online: %d", online.length);
   console.log("total: %d", missing.length);
 
-  return 1;
+  return online.length > 0;
 }
 
 function getEnvironment(name) {

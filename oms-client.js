@@ -27,8 +27,9 @@ const {loadLocalCredentials} = require('./local-azure-creds');
 const {sortByList} = require('./utils');
 
 const SUB_PATH = '/subscriptions/{subscriptionId}'
-const VM_PATH = SUB_PATH + '/providers/Microsoft.Compute/virtualmachines';
+const VM_PATH = SUB_PATH + '/providers/Microsoft.Compute/virtualMachines';
 const RG_PATH = SUB_PATH + '/resourceGroups/{resourceGroup}';
+const VM_RG_PATH = RG_PATH + '/providers/Microsoft.Compute/virtualMachines';
 const OMS_PATH = RG_PATH + '/providers/Microsoft.OperationalInsights/workspaces/{workspaceName}/';
 
 exports.createOMSClient =
@@ -186,8 +187,28 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
       });
       vms.push(...response.value);
     }
+    return vms.map((vm) => ({
+      name: vm.name.toUpperCase(),
+      rg: extractResourceGroup(vm.id)
+    }));
+  }
 
-    return vms.map((vm) => vm.name.toUpperCase()).sort();
+  client.getVMPowerState = async function getVMPowerState(vms) {
+    const result = {};
+
+    for (let {name, rg} of vms) {
+      const vmInfo = await request({
+        method: 'GET',
+        pathTemplate: VM_RG_PATH + '/{vm}/InstanceView',
+        pathParameters: {vm: name, resourceGroup: rg},
+        queryParameters: {
+          'api-version': '2016-04-30-preview'
+        }
+      });
+      result[name] = getPowerState(vmInfo.statuses);
+    }
+
+    return result;
   }
 
   function searchName(searchId) {
@@ -201,6 +222,17 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   }
   function actionName(searchId, level) {
     return searchId + '-' + level;
+  }
+  function extractResourceGroup(id) {
+    const m = /resourceGroups\/([\w-]+?)\//.exec(id);
+    if (!m) {
+      throw new Error(`Failed to find resourceGroup from ${id}`);
+    }
+    return m[1];
+  }
+  function getPowerState(statuses) {
+    const on = statuses.find((status) => status.code == 'PowerState/running');
+    return on ? 'on' : 'off';
   }
 
   function convertToSearchAlert(search) {
