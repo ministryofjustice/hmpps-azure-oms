@@ -2,7 +2,7 @@ module.exports = function(saveSearch) {
 
   saveSearch({
     id: 'cpu',
-    name: 'Machines using high CPU',
+    name: 'CPU High',
     query: `Perf
     | where ObjectName == "Processor"
       and CounterName == "% Processor Time"
@@ -32,7 +32,7 @@ module.exports = function(saveSearch) {
 
   saveSearch({
     id: 'windows-ram',
-    name: 'Windows Machines using high RAM',
+    name: 'RAM High on Windows',
     query: `Perf
     | where CounterName == "% Committed Bytes In Use"
     | summarize AggregatedValue=avg(CounterValue)
@@ -60,7 +60,7 @@ module.exports = function(saveSearch) {
 
   saveSearch({
     id: 'linux-ram',
-    name: 'Linux Machines using high RAM',
+    name: 'RAM High on Linux',
     query: `Perf
     | where CounterName == "% Used Memory"
     | summarize AggregatedValue=avg(CounterValue)
@@ -88,7 +88,7 @@ module.exports = function(saveSearch) {
 
   saveSearch({
     id: 'linux-disk',
-    name: 'Linux Disks almost full',
+    name: 'Full Disk on Linux',
     query: `Perf
     | where CounterName == "% Used Space"
     | extend Disk = strcat(Computer, " ", InstanceName)
@@ -118,7 +118,7 @@ module.exports = function(saveSearch) {
 
   saveSearch({
     id: 'linux-inodes',
-    name: 'Linux Disk Inodes almost full',
+    name: 'Full Inodes on Linux',
     query: `Perf
     | where CounterName == "% Used Inodes"
     | extend Disk = strcat(Computer, " ", InstanceName)
@@ -147,7 +147,7 @@ module.exports = function(saveSearch) {
 
   saveSearch({
     id: 'windows-disk',
-    name: 'Windows Disks almost full',
+    name: 'Full Disks on Windows',
     query: `Perf
     | where CounterName == "% Free Space"
     | extend Disk = strcat(Computer, " ", InstanceName)
