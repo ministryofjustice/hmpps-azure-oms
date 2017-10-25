@@ -153,7 +153,7 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
   client.getActiveComputers = async function getActiveComputers() {
     const searchResults = await omsRequest({
       method: 'GET',
-      pathTemplate: 'api/query/',
+      pathTemplate: 'api/query',
       queryParameters: {
         'api-version': '2017-01-01-preview',
         query: 'Heartbeat | distinct Computer',
