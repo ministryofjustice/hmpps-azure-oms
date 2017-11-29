@@ -109,7 +109,7 @@ module.exports = function(saveSearch) {
         interval: 5,
         timespan: 10,
         threshold: ["gt", 95],
-        metric: ["total", "gt", 3],
+        metric: ["total", "gt", 1],
         throttle: 10,
       }
     }
@@ -139,7 +139,7 @@ module.exports = function(saveSearch) {
         interval: 5,
         timespan: 10,
         threshold: ["gt", 95],
-        metric: ["total", "gt", 3],
+        metric: ["total", "gt", 1],
         throttle: 10,
       }
     }
@@ -168,7 +168,7 @@ module.exports = function(saveSearch) {
         interval: 5,
         timespan: 10,
         threshold: ["gt", 95],
-        metric: ["total", "gt", 3],
+        metric: ["total", "gt", 1],
         throttle: 10,
       }
     }
