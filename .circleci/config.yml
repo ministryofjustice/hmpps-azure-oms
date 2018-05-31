@@ -15,6 +15,7 @@ jobs:
             echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ wheezy main" | \
               sudo tee /etc/apt/sources.list.d/azure-cli.list
             sudo apt-key adv --keyserver packages.microsoft.com --recv-keys 417A0893
+            sudo curl -L https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
             sudo apt-get install apt-transport-https
             sudo apt-get update
             sudo apt-get install azure-cli
@@ -38,4 +39,3 @@ jobs:
             node main.js -e production computers \
               --ignore DRMLX0050,DRMLX0051,DRMLX0052,PDMLX0050,PDMLX0051,PDMLX0052,PDMLX0055
           when: always
-
