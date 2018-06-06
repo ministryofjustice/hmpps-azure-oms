@@ -19,6 +19,7 @@ jobs:
             sudo apt-get install apt-transport-https
             sudo apt-get update
             sudo apt-get install azure-cli
+
       - run:
           name: authenticate with az cli
           command: |
@@ -26,16 +27,24 @@ jobs:
               -u $ARM_CLIENT_ID -p $ARM_CLIENT_SECRET \
               --tenant 747381f4-e81f-4a43-bf68-ced6a1e14edf
       - checkout
-      - run: npm install
+      - run:
+          name: setup app dependencies
+          command: |
+            npm install
+            mkdir -p junit
       - run:
           name: run computer connection report for devtest
           command: |
             node main.js -e devtest computers \
-              --ignore MGMLX0050,MGMLX0051,MGMLX1050
+              --ignore MGMLX0050,MGMLX0051,MGMLX1050 \
+              --junit junit/devtest.xml
           when: always
       - run:
           name: run computer connection report for production
           command: |
             node main.js -e production computers \
-              --ignore DRMLX0050,DRMLX0051,DRMLX0052,PDMLX0050,PDMLX0051,PDMLX0052,PDMLX0055
+              --ignore DRMLX0050,DRMLX0051,DRMLX0052,PDMLX0050,PDMLX0051,PDMLX0052,PDMLX0055 \
+              --junit junit/production.xml
           when: always
+      - store_test_results:
+          path: junit
