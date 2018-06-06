@@ -38,6 +38,10 @@ function parseArgs() {
         describe: 'comma separated list of VMs to ignore',
         coerce: (arg) => arg.split(',')
       })
+      yargs.option('junit', {
+        string: true,
+        describe: 'produce output in junit format to filename'
+      })
     })
     .demandCommand(1, 'You must specify the command')
     .strict()
@@ -151,6 +155,43 @@ async function computers(client, args) {
   const offline = missing.filter((vm) => powerStates[vm] === "off");
   const online = listSubtract(missing, offline);
 
+  computersSummary(offline, online, missing.length);
+  if (args.junit) {
+    const junit = computersSummaryJUnit(
+      args.environment, offline, online, missing.length
+    );
+    fs.writeFileSync(args.junit, junit);
+  }
+
+  return online.length > 0;
+}
+
+function computersSummaryJUnit(env, offline, online, total) {
+  let x = '<?xml version="1.0" encoding="UTF-8"?>';
+  x += `<testsuites>`;
+  x += `<testsuite
+    name="VMs missing heartbeat"
+    tests="${total}"
+    failures="${online.length}"
+    skipped="${offline.length}"
+  >`;
+  offline.forEach((vm) => {
+    x += `
+    <testcase name="${vm}" classname="offline">
+      <skipped message="offline" />
+    </testcase>`;
+  });
+  online.forEach((vm) => {
+    x += `
+    <testcase name="${vm}" classname="${env} missing heartbeat">
+      <failure message="no heartbeat" />
+    </testcase>`;
+  });
+  x += '</testsuite></testsuites>';
+  return x;
+}
+
+function computersSummary(offline, online, total) {
   if (offline.length) {
     console.log("VMs missing heartbeat but offline:")
     console.log(offline.join("\n"));
@@ -165,9 +206,7 @@ async function computers(client, args) {
 
   console.log("offline: %d", offline.length);
   console.log("online: %d", online.length);
-  console.log("total: %d", missing.length);
-
-  return online.length > 0;
+  console.log("total: %d", total);
 }
 
 function getEnvironment(name) {
