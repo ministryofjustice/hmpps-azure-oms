@@ -1,4 +1,16 @@
 version: 2
+
+workflows:
+  version: 2
+  report:
+    triggers:
+      - schedule:
+          cron: "0 9-17 * * 1-5" # 9-5 monday-friday
+          branches:
+            only: master
+    jobs:
+      - report
+
 jobs:
   build:
     docker:
