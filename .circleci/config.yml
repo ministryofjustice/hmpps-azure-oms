@@ -4,7 +4,7 @@ workflows:
   version: 2
   oncommit:
     jobs:
-      - build
+      - report
   report:
     triggers:
       - schedule:
@@ -17,11 +17,6 @@ workflows:
       - report
 
 jobs:
-  build:
-    docker:
-      - image: circleci/node:8
-    steps:
-      - run: "true"
   report:
     docker:
       - image: circleci/node:8
