@@ -2,6 +2,9 @@ version: 2
 
 workflows:
   version: 2
+  oncommit:
+    jobs:
+      - build
   report:
     triggers:
       - schedule:
