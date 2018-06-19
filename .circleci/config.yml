@@ -6,8 +6,9 @@ workflows:
     triggers:
       - schedule:
           cron: "0 9-17 * * 1-5" # 9-5 monday-friday
-          branches:
-            only: master
+          filters:
+            branches:
+              only: master
     jobs:
       - report
 
