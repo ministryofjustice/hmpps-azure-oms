@@ -140,6 +140,10 @@ async function computers(client, args) {
   const activeComputers = await client.getActiveComputers();
   const vms = await client.getAllVMs();
   const vmNames = vms.map(vm => vm.name).sort();
+  const notMonitored = vms.reduce((map, vm) => {
+    if (vm.notMonitored) map[vm.name] = true;
+    return map;
+  }, {});
 
   const toCompare = listSubtract(vmNames, args.ignore);
   const missing = listSubtract(toCompare, activeComputers);
@@ -148,17 +152,13 @@ async function computers(client, args) {
     return 0;
   }
 
-  const missingSet = new Set(missing);
-  const missingVms = vms.filter(vm => missingSet.has(vm.name));
-  const powerStates = await client.getVMPowerState(missingVms);
+  const allowed = missing.filter((vm) => notMonitored[vm]);
+  const online = listSubtract(missing, allowed);
 
-  const offline = missing.filter((vm) => powerStates[vm] === "off");
-  const online = listSubtract(missing, offline);
-
-  computersSummary(offline, online, missing.length);
+  computersSummary(allowed, online, missing.length);
   if (args.junit) {
     const junit = computersSummaryJUnit(
-      args.environment, offline, online, missing.length
+      args.environment, allowed, online, missing.length
     );
     fs.writeFileSync(args.junit, junit);
   }
@@ -166,19 +166,19 @@ async function computers(client, args) {
   return online.length > 0;
 }
 
-function computersSummaryJUnit(env, offline, online, total) {
+function computersSummaryJUnit(env, allowed, online, total) {
   let x = '<?xml version="1.0" encoding="UTF-8"?>';
   x += `<testsuites>`;
   x += `<testsuite
     name="VMs missing heartbeat"
     tests="${total}"
     failures="${online.length}"
-    skipped="${offline.length}"
+    skipped="${allowed.length}"
   >`;
-  offline.forEach((vm) => {
+  allowed.forEach((vm) => {
     x += `
-    <testcase name="${vm}" classname="offline">
-      <skipped message="offline" />
+    <testcase name="${vm}" classname="not_monitored">
+      <skipped message="tagged not_monitored" />
     </testcase>`;
   });
   online.forEach((vm) => {
@@ -191,10 +191,10 @@ function computersSummaryJUnit(env, offline, online, total) {
   return x;
 }
 
-function computersSummary(offline, online, total) {
-  if (offline.length) {
-    console.log("VMs missing heartbeat but offline:")
-    console.log(offline.join("\n"));
+function computersSummary(allowed, online, total) {
+  if (allowed.length) {
+    console.log("VMs missing heartbeat but tagged not_monitored:")
+    console.log(allowed.join("\n"));
     console.log("-------------------");
   }
 
@@ -204,7 +204,7 @@ function computersSummary(offline, online, total) {
     console.log("-------------------");
   }
 
-  console.log("offline: %d", offline.length);
+  console.log("allowed: %d", allowed.length);
   console.log("online: %d", online.length);
   console.log("total: %d", total);
 }

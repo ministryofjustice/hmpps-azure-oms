@@ -189,6 +189,7 @@ function createOMSClient({subscriptionId, resourceGroup, workspaceName}) {
     }
     return vms.map((vm) => ({
       name: vm.name.toUpperCase(),
+      notMonitored: (vm.tags || {}).not_monitored == 'true',
       rg: extractResourceGroup(vm.id)
     }));
   }
