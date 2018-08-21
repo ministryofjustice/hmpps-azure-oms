@@ -42,6 +42,10 @@ function parseArgs() {
         string: true,
         describe: 'produce output in junit format to filename'
       })
+      yargs.option('prometheus', {
+        string: true,
+        describe: 'produce output in prometheus node exporter format to filename'
+      })
     })
     .demandCommand(1, 'You must specify the command')
     .strict()
@@ -163,6 +167,13 @@ async function computers(client, args) {
     fs.writeFileSync(args.junit, junit);
   }
 
+//  computersSummary(allowed, online, missing.length);
+  if (args.prometheus) {
+    const prometheus = computersSummaryPrometheus(
+      args.environment, allowed, online, missing.length
+    );
+    fs.writeFileSync(args.prometheus, prometheus);
+  }
   return online.length > 0;
 }
 
@@ -190,6 +201,15 @@ function computersSummaryJUnit(env, allowed, online, total) {
   x += '</testsuite></testsuites>';
   return x;
 }
+
+
+function computersSummaryPrometheus(env, allowed, online, total) {
+  let x = `oms_heartbeated_total ${total}\n`;
+  x += `oms_heartbeats_expected ${online.length}\n`;
+  x += `oms_heartbeats_exceptions ${allowed.length}\n`;
+  return x;
+}
+
 
 function computersSummary(allowed, online, total) {
   if (allowed.length) {
