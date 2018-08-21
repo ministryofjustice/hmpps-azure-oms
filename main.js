@@ -204,7 +204,7 @@ function computersSummaryJUnit(env, allowed, online, total) {
 
 
 function computersSummaryPrometheus(env, allowed, online, total) {
-  let x = `oms_heartbeated_total ${total}\n`;
+  let x = `oms_heartbeat_total ${total}\n`;
   x += `oms_heartbeats_expected ${online.length}\n`;
   x += `oms_heartbeats_exceptions ${allowed.length}\n`;
   return x;
